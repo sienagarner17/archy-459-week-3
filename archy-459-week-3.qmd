@@ -99,7 +99,7 @@ fviz_eig(pca_result,
 
 ```{r}
 # label: fig-pca-contri-original 
-# fig-cap: "homework"
+# fig-cap: This figure shows which variables contribute the most to dimension 1. This shows that width, weight, thickness, and platform all play an important role, while elongation, length, and giur aren't as important to classification of clusters. This is evident in the biplot, as you can see cluster three has the largest width, weight, and platform, with cluster two having the second largest and cluster 3 third largest. Cluster 2 has the shortest length, but cluster 1 and 3 are similar in length. Largest elongation belongs to cluster 1, and cluster 2 and 3 are similar.
 
 fviz_contrib(pca_result, 
              choice = "var", 
