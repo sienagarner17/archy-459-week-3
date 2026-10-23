@@ -1,0 +1,115 @@
+---
+title: "archy-459-week-3"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(factoextra)
+
+
+lithics_clean <- read_csv("lithics_clean.csv")
+
+
+```
+
+
+```{r}
+# prepare the data for PCA
+pca_data <-
+  lithics_clean |> 
+  select(where(is.numeric)) |>
+  drop_na()
+
+# compute PCA
+pca_result <-
+  prcomp(pca_data, scale. = TRUE)
+```
+
+```{r}
+# k-means clustering ------------------------------------------------------
+# cluster on the standardised variables (not on the PCA scores) so that the
+# full variation in the data is used, not just the first two dimensions
+set.seed(459)
+
+km_data <- scale(pca_data)
+
+# how many clusters? elbow (within-cluster sum of squares) + silhouette
+avg_silhouette <- function(k) {
+  km <- kmeans(km_data, centers = k, nstart = 25)
+  mean(cluster::silhouette(km$cluster, dist(km_data))[, "sil_width"])
+}
+
+km_diagnostics <-
+  tibble(
+    k          = 2:8,
+    withinss   = map_dbl(2:8, ~ kmeans(km_data, centers = .x, nstart = 25)$tot.withinss),
+    silhouette = map_dbl(2:8, avg_silhouette)
+  )
+km_diagnostics
+
+# k = 3 is the elbow of the withinss curve and gives the smallest set of
+# cleanly separated groups (they also track the three artefact periods)
+k <- 3
+km_result <- kmeans(km_data, centers = k, nstart = 25)
+
+# cluster membership, in the same row order as pca_data and pca_result$x
+km_cluster <- factor(km_result$cluster,
+                     levels  = 1:k,
+                     labels = paste("Cluster", 1:k))
+
+km_membership <-
+  lithics_clean |>
+  slice(as.integer(rownames(pca_data))) |>
+  mutate(cluster = km_cluster)
+
+km_membership |> count(cluster)
+
+# how the clusters line up with the archaeological periods
+table(km_membership$period, km_membership$cluster)
+```
+
+```{r}
+#1 label: fig-pca-biplot
+#1 fig-cap: This biplot shows the different types and the variables used to classify them. For example, the blue would have the largest weight, width, thickness, etc, and the green would have the shortest length and moderate thickness. 
+
+fviz_pca(pca_result,
+         geom.ind = "point",
+         col.ind = km_cluster,
+         shape.ind = 19,
+         addEllipses = TRUE,
+         repel = TRUE,
+         title = "") +
+  labs(colour = "Cluster") +
+  guides(fill = "none")
+
+        
+```
+
+```{r}
+# label: fig-pca-contr 
+#1 fig-cap: This figure shows the dimensions and their eigen value. Only the first 4 are above the eigen value of one and dimension one is much more significant since it is high above the line. 
+
+# how much each PC is telling us
+fviz_eig(pca_result,
+         choice = "eigenvalue",
+         parallel = TRUE, 
+         title = "")
+```
+
+```{r}
+# label: fig-pca-contri-original 
+# fig-cap: "homework"
+
+fviz_contrib(pca_result, 
+             choice = "var", 
+             axes = 1)
+```
+
+```{r}
+# contribution plot for dim-2 
+```
+
+
+
+
